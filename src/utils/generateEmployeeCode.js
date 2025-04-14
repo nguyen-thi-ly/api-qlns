@@ -13,8 +13,7 @@ const generateEmployeeId = async () => {
     }
   }
 
-  // Trả về mã nhân viên dạng DINA00001, DINA00002, ...
-  return `DINA${nextNumber.toString().padStart(5, "0")}`;
+  return `DEHA${nextNumber.toString().padStart(5, "0")}`;
 };
 
 export default generateEmployeeId;

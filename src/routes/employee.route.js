@@ -9,14 +9,7 @@ import {
 import authorize from "../middlewares/authorize.middleware.js";
 const router = express.Router();
 
-router
-  .route("/")
-  .get(getEmployees)
-  .post(authorize(["admin", "hr"]), createEmployee);
-router
-  .route("/:id")
-  .get(getEmployeeById)
-  .put(authorize(["admin", "hr"]), updateEmployee)
-  .delete(authorize(["admin", "hr"]), deleteEmployee);
+router.route("/").get(getEmployees).post(createEmployee);
+router.route("/:id").get(getEmployeeById).put(updateEmployee).delete(deleteEmployee);
 
 export default router;

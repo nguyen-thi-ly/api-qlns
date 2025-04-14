@@ -43,6 +43,23 @@ const salarySchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    totalSalaryGross: {
+      type: Number,
+      default: 0,
+    },
+    totalSalaryNet: {
+      type: Number,
+      default: 0,
+    },
+    attendanceMonth: Number,
+    attendanceYear: Number,
+    attendanceSummary: {
+      totalDays: Number,
+      fullDays: Number,
+      halfDays: Number,
+      offDays: Number,
+      workingDays: Number,
+    },
   },
   {
     timestamps: true,

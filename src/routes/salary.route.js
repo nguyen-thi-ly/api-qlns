@@ -9,11 +9,8 @@ import authorize from "../middlewares/authorize.middleware.js";
 
 const router = express.Router();
 
-router
-  .route("/")
-  .get(getSalaries)
-  .post(authorize(["admin", "hr"]), createOrUpdateSalary);
-router.route("/:id").delete(authorize(["admin", "hr"]), deleteSalary);
-router.route("/employee/:employeeId").get(authorize(["admin", "hr"]), getSalaryByEmployeeId);
+router.route("/").get(getSalaries).post(createOrUpdateSalary);
+router.route("/:id").delete(deleteSalary);
+router.route("/employee/:employeeId").get(getSalaryByEmployeeId);
 
 export default router;

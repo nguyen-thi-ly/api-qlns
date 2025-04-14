@@ -27,6 +27,9 @@ const getSalaries = async (req, res) => {
           attendanceAllowance: salary.attendanceAllowance,
           seniorityAllowance: salary.seniorityAllowance,
           effectiveDate: salary.effectiveDate,
+          month: salary.attendanceMonth,
+          year: salary.attendanceYear,
+          detail: salary.attendanceSummary,
           createdAt: salary.createdAt,
           updatedAt: salary.updatedAt,
         };

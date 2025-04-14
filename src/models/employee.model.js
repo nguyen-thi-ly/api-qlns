@@ -27,17 +27,15 @@ const employeeSchema = new mongoose.Schema(
     },
     company: {
       type: String,
-      default: "DINA - CÔNG TY CỔ PHẦN DỊCH VỤ VÀ CÔNG NGHỆ DINA",
+      default: "DEHA - CÔNG TY CỔ PHẦN DỊCH VỤ VÀ CÔNG NGHỆ DEHA",
     },
     department: {
       type: String,
       required: true,
-      enum: ["Ban Tổng giám đốc", "Ban Kỹ thuật", "Ban nhân sự", "Ban bán hàng", "Ban truyền thông"],
     },
     position: {
       type: String,
       required: true,
-      enum: ["Thực tập sinh", "Thử việc", "Nhân viên", "Trưởng phòng", "Phó giám đốc", "Tổng giám đốc"],
     },
     personalInfo: {
       idCard: {
@@ -54,6 +52,12 @@ const employeeSchema = new mongoose.Schema(
       permanentAddress: { type: String, required: true },
       temporaryAddress: { type: String },
     },
+    attendances: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Attendance",
+      },
+    ],
   },
   {
     timestamps: true,
