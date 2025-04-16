@@ -51,14 +51,19 @@ const salarySchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    personalIncomeTax: {
+      type: Number,
+      default: 0,
+    },
+    employeeInsurance: {
+      type: Number,
+      default: 0,
+    },
     attendanceMonth: Number,
     attendanceYear: Number,
     attendanceSummary: {
-      totalDays: Number,
-      fullDays: Number,
-      halfDays: Number,
-      offDays: Number,
-      workingDays: Number,
+      type: Object,
+      default: {},
     },
   },
   {

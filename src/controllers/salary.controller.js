@@ -4,39 +4,40 @@ import Employee from "../models/employee.model.js";
 const getSalaries = async (req, res) => {
   try {
     const salaries = await Salary.find({});
+    res.json(salaries);
 
     // Tạo mảng kết quả với thông tin chi tiết nhân viên
-    const result = await Promise.all(
-      salaries.map(async (salary) => {
-        const employee = await Employee.findOne({ employeeId: salary.employeeId });
+    // const result = await Promise.all(
+    //   salaries.map(async (salary) => {
+    //     const employee = await Employee.findOne({ employeeId: salary.employeeId });
 
-        return {
-          _id: salary._id,
-          // Thông tin nhân viên
-          employeeId: salary.employeeId,
-          fullName: employee ? employee.fullName : "Không tìm thấy",
-          department: employee ? employee.department : "Không tìm thấy",
+    //     return {
+    //       _id: salary._id,
+    //       // Thông tin nhân viên
+    //       employeeId: salary.employeeId,
+    //       fullName: employee ? employee.fullName : "Không tìm thấy",
+    //       department: employee ? employee.department : "Không tìm thấy",
 
-          // Thông tin bảng lương
-          basicSalary: salary.basicSalary,
-          responsibilityAllowance: salary.responsibilityAllowance,
-          transportAllowance: salary.transportAllowance,
-          phoneAllowance: salary.phoneAllowance,
-          lunchAllowance: salary.lunchAllowance,
-          childrenAllowance: salary.childrenAllowance,
-          attendanceAllowance: salary.attendanceAllowance,
-          seniorityAllowance: salary.seniorityAllowance,
-          effectiveDate: salary.effectiveDate,
-          month: salary.attendanceMonth,
-          year: salary.attendanceYear,
-          detail: salary.attendanceSummary,
-          createdAt: salary.createdAt,
-          updatedAt: salary.updatedAt,
-        };
-      }),
-    );
+    //       // Thông tin bảng lương
+    //       basicSalary: salary.basicSalary,
+    //       responsibilityAllowance: salary.responsibilityAllowance,
+    //       transportAllowance: salary.transportAllowance,
+    //       phoneAllowance: salary.phoneAllowance,
+    //       lunchAllowance: salary.lunchAllowance,
+    //       childrenAllowance: salary.childrenAllowance,
+    //       attendanceAllowance: salary.attendanceAllowance,
+    //       seniorityAllowance: salary.seniorityAllowance,
+    //       effectiveDate: salary.effectiveDate,
+    //       month: salary.attendanceMonth,
+    //       year: salary.attendanceYear,
+    //       detail: salary.attendanceSummary,
+    //       createdAt: salary.createdAt,
+    //       updatedAt: salary.updatedAt,
+    //     };
+    //   }),
+    // );
 
-    res.json(result);
+    // res.json(result);
   } catch (error) {
     console.error(`Error: ${error.message}`);
     res.status(500).json({ message: "Lỗi server" });

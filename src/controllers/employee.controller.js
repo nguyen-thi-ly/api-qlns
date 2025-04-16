@@ -341,6 +341,7 @@ const updateEmployee = async (req, res) => {
         {
           ...salary,
           totalSalaryGross,
+          employeeInsurance: updatedInsurance ? updatedInsurance.employeeInsurance.value.total : 0,
           effectiveDate: new Date(),
         },
         { new: true, upsert: true },
@@ -374,7 +375,8 @@ const deleteEmployee = async (req, res) => {
     if (employee) {
       // Xóa cả bảng lương khi xóa nhân viên
       await Salary.deleteMany({ employeeId: employee.employeeId });
-      await Employee.deleteOne({ _id: req.params.id });
+      await Attendance.deleteMany({ employeeId: employee.employeeId });
+      await Employee.deleteOne({ employeeId: req.params.id });
       res.json({ message: "Đã xóa nhân viên" });
     } else {
       res.status(404).json({ message: "Không tìm thấy nhân viên" });

@@ -65,10 +65,13 @@ const importAttendance = async (req, res) => {
           value = 0;
         }
 
+        const dayOfWeek = dayOfWeeks[j - 2];
+        const isWeekend = dayOfWeek === "T7" || dayOfWeek === "CN";
+
         // Cập nhật thống kê
         if (value === 1) fullDays++;
         else if (value === 0.5) halfDays++;
-        else if (value === 0) offDays++;
+        else if (value === 0 && !isWeekend) offDays++; // Chỉ tính ngày nghỉ nếu không phải cuối tuần
 
         // Xác định ngày thực tế
         const day = parseInt(dates[j - 2]);
@@ -122,7 +125,7 @@ const importAttendance = async (req, res) => {
             month,
             year,
             summary,
-            attendanceData, // Sử dụng lại tên biến attendanceData cho trường details
+            attendanceData,
           },
           { upsert: true, new: true },
         );
@@ -159,6 +162,20 @@ const getAttendance = async (req, res) => {
   try {
     const { month, year, employeeId } = req.query;
 
+    if (!month || !year) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu tháng hoặc năm",
+      });
+    }
+
+    if (!employeeId) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu mã nhân viên",
+      });
+    }
+
     let query = {};
     if (month && year) {
       query.month = parseInt(month);
@@ -184,11 +201,22 @@ const getAttendance = async (req, res) => {
 
       const summary = attendance.attendanceData.reduce(
         (acc, day) => {
-          if (day.value === 1) acc.fullDays++;
-          else if (day.value === 0.5) acc.halfDays++;
-          else acc.offDays++;
+          // Chỉ tính các ngày làm việc trong tuần (không phải T7 và CN)
+          const isWeekend = day.dayOfWeek === "T7" || day.dayOfWeek === "CN";
 
           acc.totalDays++;
+
+          if (day.value === 1) {
+            acc.fullDays++;
+          } else if (day.value === 0.5) {
+            acc.halfDays++;
+          } else {
+            // Chỉ tính ngày nghỉ nếu không phải cuối tuần
+            if (!isWeekend) {
+              acc.offDays++;
+            }
+          }
+
           acc.workingDays += day.value;
           return acc;
         },
@@ -253,10 +281,22 @@ const getAllAttendance = async (req, res) => {
 
       const summary = attendance.attendanceData.reduce(
         (acc, day) => {
+          // Chỉ tính các ngày làm việc trong tuần (không phải T7 và CN)
+          const isWeekend = day.dayOfWeek === "T7" || day.dayOfWeek === "CN";
+
           acc.totalDays++;
-          if (day.value === 1) acc.fullDays++;
-          else if (day.value === 0.5) acc.halfDays++;
-          else acc.offDays++;
+
+          if (day.value === 1) {
+            acc.fullDays++;
+          } else if (day.value === 0.5) {
+            acc.halfDays++;
+          } else {
+            // Chỉ tính ngày nghỉ nếu không phải cuối tuần
+            if (!isWeekend) {
+              acc.offDays++;
+            }
+          }
+
           acc.workingDays += day.value;
           return acc;
         },

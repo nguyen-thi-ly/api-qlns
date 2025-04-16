@@ -7,6 +7,7 @@ import employeeRoutes from "./routes/employee.route.js";
 import salaryRoutes from "./routes/salary.route.js";
 import verifyToken from "./middlewares/auth.middleware.js";
 import attendanceRoutes from "./routes/attendance.route.js";
+import payPeriodRoutes from "./routes/payPeriod.route.js";
 
 dotenv.config();
 const app = express();
@@ -24,6 +25,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/employees", verifyToken, employeeRoutes);
 app.use("/api/salaries", verifyToken, salaryRoutes);
 app.use("/api/attendance", verifyToken, attendanceRoutes);
+app.use("/api/pay-period", verifyToken, payPeriodRoutes);
 
 app.listen(process.env.PORT, () => {
   console.log(`🚀 Server running on port ${process.env.PORT}`);
