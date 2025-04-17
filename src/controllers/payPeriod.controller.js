@@ -95,6 +95,8 @@ export const getPayPeriodById = async (req, res) => {
       data: {
         payPeriod,
         salaries,
+        fromDate: `26/${month}`,
+        toDate: `25/${month + 1}`,
       },
     });
   } catch (error) {
