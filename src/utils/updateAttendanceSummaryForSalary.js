@@ -19,19 +19,91 @@ const calculateTax = (totalSalaryGross) => {
 
 const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary) => {
   try {
-    // Cập nhật bảng chấm công vào bảng lương
-    const updatedSalary = await Salary.findOneAndUpdate(
-      { employeeId },
-      {
-        attendanceMonth: month,
-        attendanceYear: year,
-        attendanceSummary: summary,
-      },
-      { new: true },
-    );
+    // Tìm kiếm bản ghi lương hiện tại của nhân viên
+    const existingSalary = await Salary.findOne({ employeeId });
 
-    if (updatedSalary) {
-      // Lấy thông tin lương cơ bản và các khoản phụ cấp từ bảng lương
+    // Kiểm tra nếu đã có bản ghi và attendanceMonth, attendanceYear là null
+    // hoặc khớp với month, year truyền vào
+    if (
+      existingSalary &&
+      (existingSalary.attendanceMonth === null ||
+        existingSalary.attendanceYear === null ||
+        (existingSalary.attendanceMonth === month && existingSalary.attendanceYear === year))
+    ) {
+      // Cập nhật bản ghi hiện tại
+      const updatedSalary = await Salary.findOneAndUpdate(
+        { employeeId },
+        {
+          attendanceMonth: month,
+          attendanceYear: year,
+          attendanceSummary: summary,
+        },
+        { new: true },
+      );
+
+      // Tiến hành tính toán lương dựa trên bản ghi này
+      if (updatedSalary) {
+        // Lấy thông tin lương cơ bản và các khoản phụ cấp từ bảng lương
+        const {
+          basicSalary,
+          responsibilityAllowance,
+          transportAllowance,
+          phoneAllowance,
+          lunchAllowance,
+          childrenAllowance,
+          attendanceAllowance,
+          seniorityAllowance,
+        } = updatedSalary;
+
+        // Tính lương cơ bản theo công thức mới (lương cơ bản / 24 * số ngày công thực tế)
+        const baseSalary = Math.round((basicSalary / 24) * summary.workingDays);
+
+        // Tính tổng lương gross
+        const totalSalaryGross = Math.round(
+          baseSalary +
+            responsibilityAllowance +
+            transportAllowance +
+            phoneAllowance +
+            lunchAllowance +
+            childrenAllowance +
+            attendanceAllowance +
+            seniorityAllowance,
+        );
+
+        // Tính thuế thu nhập cá nhân
+        const personalIncomeTax = Math.round(calculateTax(totalSalaryGross));
+
+        // Tính lương net (lương gross - thuế)
+        const totalSalaryNet = Math.round(totalSalaryGross - personalIncomeTax - updatedSalary.employeeInsurance);
+
+        // Cập nhật bảng lương với thông tin mới
+        await Salary.findOneAndUpdate(
+          { employeeId },
+          {
+            totalSalaryGross,
+            totalSalaryNet,
+            personalIncomeTax,
+            effectiveDate: new Date(),
+          },
+          { new: true },
+        );
+
+        console.log(`Lương của nhân viên ${employeeId} đã được tính và cập nhật thành công.`);
+      }
+    } else {
+      // Nếu không có bản ghi hoặc attendanceMonth, attendanceYear khác với month, year truyền vào
+      // thì tạo bản ghi mới
+
+      // Lấy thông tin lương cơ bản mới nhất của nhân viên
+      const baseSalaryInfo =
+        existingSalary || (await Salary.findOne({ employeeId }, {}, { sort: { effectiveDate: -1 } }));
+
+      if (!baseSalaryInfo) {
+        console.error(`Không tìm thấy thông tin lương cơ bản cho nhân viên ${employeeId}`);
+        return;
+      }
+
+      // Sao chép thông tin lương cơ bản
       const {
         basicSalary,
         responsibilityAllowance,
@@ -41,10 +113,11 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
         childrenAllowance,
         attendanceAllowance,
         seniorityAllowance,
-      } = updatedSalary;
+        employeeInsurance,
+      } = baseSalaryInfo;
 
-      // Tính lương cơ bản theo công thức mới (lương cơ bản / 24 * số ngày công thực tế)
-      const baseSalary = Math.round((basicSalary / 24) * summary.workingDays); // Làm tròn lương cơ bản
+      // Tính lương cơ bản theo công thức mới
+      const baseSalary = Math.round((basicSalary / 24) * summary.workingDays);
 
       // Tính tổng lương gross
       const totalSalaryGross = Math.round(
@@ -56,27 +129,36 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
           childrenAllowance +
           attendanceAllowance +
           seniorityAllowance,
-      ); // Làm tròn tổng lương gross
-
-      // Tính thuế thu nhập cá nhân
-      const personalIncomeTax = Math.round(calculateTax(totalSalaryGross)); // Làm tròn thuế thu nhập cá nhân
-
-      // Tính lương net (lương gross - thuế)
-      const totalSalaryNet = Math.round(totalSalaryGross - personalIncomeTax - updatedSalary.employeeInsurance); // Làm tròn lương net
-
-      // Cập nhật bảng lương với thông tin mới
-      await Salary.findOneAndUpdate(
-        { employeeId },
-        {
-          totalSalaryGross,
-          totalSalaryNet,
-          personalIncomeTax,
-          effectiveDate: new Date(), // Cập nhật thời gian hiệu lực
-        },
-        { new: true },
       );
 
-      console.log(`Lương của nhân viên ${employeeId} đã được tính và cập nhật thành công.`);
+      // Tính thuế thu nhập cá nhân
+      const personalIncomeTax = Math.round(calculateTax(totalSalaryGross));
+
+      // Tính lương net
+      const totalSalaryNet = Math.round(totalSalaryGross - personalIncomeTax - employeeInsurance);
+
+      // Tạo bản ghi lương mới với tháng và năm mới
+      const newSalary = await Salary.create({
+        employeeId,
+        attendanceMonth: month,
+        attendanceYear: year,
+        attendanceSummary: summary,
+        basicSalary,
+        responsibilityAllowance,
+        transportAllowance,
+        phoneAllowance,
+        lunchAllowance,
+        childrenAllowance,
+        attendanceAllowance,
+        seniorityAllowance,
+        employeeInsurance,
+        totalSalaryGross,
+        totalSalaryNet,
+        personalIncomeTax,
+        effectiveDate: new Date(),
+      });
+
+      console.log(`Đã tạo bản ghi lương mới cho nhân viên ${employeeId} tháng ${month}/${year}`);
     }
   } catch (error) {
     console.error(`Lỗi khi cập nhật workingDays và tính lương cho ${employeeId}:`, error.message);

@@ -1,21 +1,42 @@
 import payPeriodModel from "../models/payPeriod.model.js";
+import Salary from "../models/salary.model.js";
 
 export const createPayPeriod = async (req, res) => {
-  const { month, year, employees } = req.body;
+  const { month, year, employeeIds } = req.body;
+
   try {
-    const payPeriod = await payPeriodModel.create({
-      namePayPeriod: `Kỳ trả lương ${month}/${year}-TSC-HO`,
-      employees,
-    });
+    const namePayPeriod = `Kỳ trả lương ${month}/${year}-TSC-HO`;
+
+    // Tìm kỳ lương đã tồn tại
+    const existingPayPeriod = await payPeriodModel.findOne({ namePayPeriod });
+
+    let payPeriod;
+
+    if (existingPayPeriod) {
+      // Nếu đã có, cập nhật danh sách employeeIds (gộp & loại trùng)
+      const mergedEmployeeIds = Array.from(new Set([...existingPayPeriod.employeeIds, ...employeeIds]));
+
+      existingPayPeriod.employeeIds = mergedEmployeeIds;
+      payPeriod = await existingPayPeriod.save();
+    } else {
+      // Nếu chưa có, tạo mới
+      payPeriod = await payPeriodModel.create({
+        namePayPeriod,
+        employeeIds,
+        month,
+        year,
+      });
+    }
+
     res.status(201).json({
       success: true,
-      message: "Tạo kỳ lương thành công",
+      message: "Tạo hoặc cập nhật kỳ lương thành công",
       data: payPeriod,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Tạo kỳ lương thất bại",
+      message: "Tạo hoặc cập nhật kỳ lương thất bại",
       error: error.message,
     });
   }
@@ -48,10 +69,33 @@ export const getPayPeriodById = async (req, res) => {
         message: "Kỳ lương không tồn tại",
       });
     }
+
+    // Extract tháng và năm từ tên kỳ lương, ví dụ: "Kỳ trả lương 5/2025-TSC-HO"
+    const matched = payPeriod.namePayPeriod.match(/Kỳ trả lương (\d{1,2})\/(\d{4})/);
+    const month = matched ? parseInt(matched[1]) : null;
+    const year = matched ? parseInt(matched[2]) : null;
+
+    if (!month || !year) {
+      return res.status(400).json({
+        success: false,
+        message: "Không xác định được tháng/năm từ kỳ lương",
+      });
+    }
+
+    // Lấy bảng lương đúng với tháng, năm và danh sách nhân viên
+    const salaries = await Salary.find({
+      employeeId: { $in: payPeriod.employeeIds },
+      attendanceMonth: month,
+      attendanceYear: year,
+    }).lean();
+
     res.status(200).json({
       success: true,
       message: "Lấy thông tin kỳ lương thành công",
-      data: payPeriod,
+      data: {
+        payPeriod,
+        salaries,
+      },
     });
   } catch (error) {
     res.status(500).json({

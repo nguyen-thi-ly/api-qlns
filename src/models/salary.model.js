@@ -59,8 +59,14 @@ const salarySchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    attendanceMonth: Number,
-    attendanceYear: Number,
+    attendanceMonth: {
+      type: Number,
+      default: null,
+    },
+    attendanceYear: {
+      type: Number,
+      default: null,
+    },
     attendanceSummary: {
       type: Object,
       default: {},

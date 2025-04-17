@@ -10,7 +10,7 @@ const payPeriod = new mongoose.Schema(
       type: String,
       default: "DEHA - CÔNG TY CỔ PHẦN DỊCH VỤ VÀ CÔNG NGHỆ DEHA",
     },
-    employees: {
+    employeeIds: {
       type: Array,
       default: [],
     },
