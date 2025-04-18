@@ -1,36 +1,43 @@
 import Salary from "../models/salary.model.js";
 
-// Hàm tính thuế thu nhập cá nhân
-const calculateTax = (totalSalaryGross) => {
-  let tax = 0;
+// Hàm tính thuế thu nhập cá nhân theo biểu thuế lũy tiến từng phần
+const calculateTax = (totalSalaryGross, employeeInsurance, dependents = 0) => {
+  const personalDeduction = 11000000;
+  const dependentDeduction = dependents * 4400000;
+  const taxableIncome = totalSalaryGross - employeeInsurance - personalDeduction - dependentDeduction;
 
-  if (totalSalaryGross <= 10000000) {
-    tax = 0; // Thuế 0% đối với thu nhập <= 10 triệu
-  } else if (totalSalaryGross <= 20000000) {
-    tax = (totalSalaryGross - 10000000) * 0.1; // Thuế 10% đối với thu nhập từ 10 triệu đến 20 triệu
-  } else if (totalSalaryGross <= 30000000) {
-    tax = (totalSalaryGross - 20000000) * 0.15 + 1000000; // Thuế 15% đối với thu nhập từ 20 triệu đến 30 triệu
+  if (taxableIncome <= 0) return 0;
+
+  let tax = 0;
+  if (taxableIncome <= 5000000) {
+    tax = taxableIncome * 0.05;
+  } else if (taxableIncome <= 10000000) {
+    tax = (taxableIncome - 5000000) * 0.1 + 250000;
+  } else if (taxableIncome <= 18000000) {
+    tax = (taxableIncome - 10000000) * 0.15 + 750000;
+  } else if (taxableIncome <= 32000000) {
+    tax = (taxableIncome - 18000000) * 0.2 + 1950000;
+  } else if (taxableIncome <= 52000000) {
+    tax = (taxableIncome - 32000000) * 0.25 + 4750000;
+  } else if (taxableIncome <= 80000000) {
+    tax = (taxableIncome - 52000000) * 0.3 + 9750000;
   } else {
-    tax = (totalSalaryGross - 30000000) * 0.2 + 2500000; // Thuế 20% đối với thu nhập trên 30 triệu
+    tax = (taxableIncome - 80000000) * 0.35 + 18150000;
   }
 
-  return tax;
+  return Math.round(tax);
 };
 
 const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary) => {
   try {
-    // Tìm kiếm bản ghi lương hiện tại của nhân viên
     const existingSalary = await Salary.findOne({ employeeId });
 
-    // Kiểm tra nếu đã có bản ghi và attendanceMonth, attendanceYear là null
-    // hoặc khớp với month, year truyền vào
     if (
       existingSalary &&
       (existingSalary.attendanceMonth === null ||
         existingSalary.attendanceYear === null ||
         (existingSalary.attendanceMonth === month && existingSalary.attendanceYear === year))
     ) {
-      // Cập nhật bản ghi hiện tại
       const updatedSalary = await Salary.findOneAndUpdate(
         { employeeId },
         {
@@ -41,9 +48,7 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
         { new: true },
       );
 
-      // Tiến hành tính toán lương dựa trên bản ghi này
       if (updatedSalary) {
-        // Lấy thông tin lương cơ bản và các khoản phụ cấp từ bảng lương
         const {
           basicSalary,
           responsibilityAllowance,
@@ -53,12 +58,11 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
           childrenAllowance,
           attendanceAllowance,
           seniorityAllowance,
+          employeeInsurance,
         } = updatedSalary;
 
-        // Tính lương cơ bản theo công thức mới (lương cơ bản / 24 * số ngày công thực tế)
         const baseSalary = Math.round((basicSalary / 24) * summary.workingDays);
 
-        // Tính tổng lương gross
         const totalSalaryGross = Math.round(
           baseSalary +
             responsibilityAllowance +
@@ -70,13 +74,10 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
             seniorityAllowance,
         );
 
-        // Tính thuế thu nhập cá nhân
-        const personalIncomeTax = Math.round(calculateTax(totalSalaryGross));
+        const personalIncomeTax = calculateTax(totalSalaryGross, employeeInsurance);
 
-        // Tính lương net (lương gross - thuế)
-        const totalSalaryNet = Math.round(totalSalaryGross - personalIncomeTax - updatedSalary.employeeInsurance);
+        const totalSalaryNet = Math.round(totalSalaryGross - personalIncomeTax - employeeInsurance);
 
-        // Cập nhật bảng lương với thông tin mới
         await Salary.findOneAndUpdate(
           { employeeId },
           {
@@ -91,10 +92,6 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
         console.log(`Lương của nhân viên ${employeeId} đã được tính và cập nhật thành công.`);
       }
     } else {
-      // Nếu không có bản ghi hoặc attendanceMonth, attendanceYear khác với month, year truyền vào
-      // thì tạo bản ghi mới
-
-      // Lấy thông tin lương cơ bản mới nhất của nhân viên
       const baseSalaryInfo =
         existingSalary || (await Salary.findOne({ employeeId }, {}, { sort: { effectiveDate: -1 } }));
 
@@ -103,7 +100,6 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
         return;
       }
 
-      // Sao chép thông tin lương cơ bản
       const {
         basicSalary,
         responsibilityAllowance,
@@ -116,10 +112,8 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
         employeeInsurance,
       } = baseSalaryInfo;
 
-      // Tính lương cơ bản theo công thức mới
       const baseSalary = Math.round((basicSalary / 24) * summary.workingDays);
 
-      // Tính tổng lương gross
       const totalSalaryGross = Math.round(
         baseSalary +
           responsibilityAllowance +
@@ -131,14 +125,11 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
           seniorityAllowance,
       );
 
-      // Tính thuế thu nhập cá nhân
-      const personalIncomeTax = Math.round(calculateTax(totalSalaryGross));
+      const personalIncomeTax = calculateTax(totalSalaryGross, employeeInsurance);
 
-      // Tính lương net
       const totalSalaryNet = Math.round(totalSalaryGross - personalIncomeTax - employeeInsurance);
 
-      // Tạo bản ghi lương mới với tháng và năm mới
-      const newSalary = await Salary.create({
+      await Salary.create({
         employeeId,
         attendanceMonth: month,
         attendanceYear: year,
