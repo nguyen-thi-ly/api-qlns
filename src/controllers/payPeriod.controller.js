@@ -1,5 +1,6 @@
 import payPeriodModel from "../models/payPeriod.model.js";
 import Salary from "../models/salary.model.js";
+import Employee from "../models/employee.model.js";
 
 export const createPayPeriod = async (req, res) => {
   const { month, year, employeeIds } = req.body;
@@ -70,7 +71,6 @@ export const getPayPeriodById = async (req, res) => {
       });
     }
 
-    // Extract tháng và năm từ tên kỳ lương, ví dụ: "Kỳ trả lương 5/2025-TSC-HO"
     const matched = payPeriod.namePayPeriod.match(/Kỳ trả lương (\d{1,2})\/(\d{4})/);
     const month = matched ? parseInt(matched[1]) : null;
     const year = matched ? parseInt(matched[2]) : null;
@@ -82,19 +82,36 @@ export const getPayPeriodById = async (req, res) => {
       });
     }
 
-    // Lấy bảng lương đúng với tháng, năm và danh sách nhân viên
+    // Lấy bảng lương của các nhân viên trong kỳ
     const salaries = await Salary.find({
       employeeId: { $in: payPeriod.employeeIds },
       attendanceMonth: month,
       attendanceYear: year,
     }).lean();
 
+    // Lấy tên nhân viên tương ứng
+    const employees = await Employee.find({
+      employeeId: { $in: payPeriod.employeeIds },
+    }).lean();
+
+    // Map employeeId -> fullName
+    const employeeMap = {};
+    employees.forEach((emp) => {
+      employeeMap[emp.employeeId] = emp.fullName;
+    });
+
+    // Gộp tên nhân viên vào mỗi mục trong danh sách salaries
+    const salariesWithName = salaries.map((salary) => ({
+      ...salary,
+      fullName: employeeMap[salary.employeeId] || "Không tìm thấy tên",
+    }));
+
     res.status(200).json({
       success: true,
       message: "Lấy thông tin kỳ lương thành công",
       data: {
         payPeriod,
-        salaries,
+        salaries: salariesWithName,
         fromDate: `26/${month - 1}`,
         toDate: `25/${month}`,
       },
