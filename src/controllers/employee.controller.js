@@ -146,7 +146,7 @@ const getEmployeeById = async (req, res) => {
 
 const createEmployee = async (req, res) => {
   try {
-    const { fullName, birthDate, email, phone, department, position, personalInfo } = req.body;
+    const { fullName, birthDate, email, phone, company, department, position, personalInfo } = req.body;
 
     const employeeId = await generateEmployeeId();
 
@@ -159,6 +159,7 @@ const createEmployee = async (req, res) => {
       department,
       position,
       personalInfo,
+      company,
     });
 
     if (!employee) {
@@ -184,8 +185,19 @@ const createEmployee = async (req, res) => {
 // @access  Public
 const updateEmployee = async (req, res) => {
   try {
-    const { fullName, birthDate, email, phone, department, position, personalInfo, contract, insurance, salary } =
-      req.body;
+    const {
+      fullName,
+      birthDate,
+      email,
+      phone,
+      company,
+      department,
+      position,
+      personalInfo,
+      contract,
+      insurance,
+      salary,
+    } = req.body;
 
     const employee = await Employee.findOne({ employeeId: req.params.id });
 
@@ -200,6 +212,7 @@ const updateEmployee = async (req, res) => {
     employee.phone = phone || employee.phone;
     employee.department = department || employee.department;
     employee.position = position || employee.position;
+    employee.company = company || employee.company;
 
     if (personalInfo) {
       if (personalInfo.idCard) {
