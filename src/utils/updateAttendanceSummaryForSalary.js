@@ -1,28 +1,30 @@
 import Salary from "../models/salary.model.js";
 
-// Hàm tính thuế thu nhập cá nhân theo biểu thuế lũy tiến từng phần
-const calculateTax = (totalSalaryGross, employeeInsurance, dependents = 0) => {
-  const personalDeduction = 11000000;
-  const dependentDeduction = dependents * 4400000;
-  const taxableIncome = totalSalaryGross - employeeInsurance - personalDeduction - dependentDeduction;
-
+// Hàm tính thuế thu nhập cá nhân theo biểu thuế lũy tiến mới (không giảm trừ)
+const calculateTax = (taxableIncome) => {
   if (taxableIncome <= 0) return 0;
 
   let tax = 0;
-  if (taxableIncome <= 5000000) {
-    tax = taxableIncome * 0.05;
-  } else if (taxableIncome <= 10000000) {
-    tax = (taxableIncome - 5000000) * 0.1 + 250000;
-  } else if (taxableIncome <= 18000000) {
-    tax = (taxableIncome - 10000000) * 0.15 + 750000;
-  } else if (taxableIncome <= 32000000) {
-    tax = (taxableIncome - 18000000) * 0.2 + 1950000;
-  } else if (taxableIncome <= 52000000) {
-    tax = (taxableIncome - 32000000) * 0.25 + 4750000;
-  } else if (taxableIncome <= 80000000) {
-    tax = (taxableIncome - 52000000) * 0.3 + 9750000;
-  } else {
-    tax = (taxableIncome - 80000000) * 0.35 + 18150000;
+  const brackets = [
+    { limit: 5000000, rate: 0.05 },
+    { limit: 10000000, rate: 0.1 },
+    { limit: 18000000, rate: 0.15 },
+    { limit: 32000000, rate: 0.2 },
+    { limit: 52000000, rate: 0.25 },
+    { limit: 80000000, rate: 0.3 },
+    { limit: Infinity, rate: 0.35 },
+  ];
+
+  let previousLimit = 0;
+
+  for (const { limit, rate } of brackets) {
+    if (taxableIncome > previousLimit) {
+      const amount = Math.min(taxableIncome, limit) - previousLimit;
+      tax += amount * rate;
+      previousLimit = limit;
+    } else {
+      break;
+    }
   }
 
   return Math.round(tax);
@@ -32,103 +34,69 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
   try {
     const existingSalary = await Salary.findOne({ employeeId });
 
+    const baseSalaryInfo =
+      existingSalary || (await Salary.findOne({ employeeId }, {}, { sort: { effectiveDate: -1 } }));
+
+    if (!baseSalaryInfo) {
+      console.error(`Không tìm thấy thông tin lương cơ bản cho nhân viên ${employeeId}`);
+      return;
+    }
+
+    const {
+      basicSalary,
+      responsibilityAllowance,
+      transportAllowance,
+      phoneAllowance,
+      lunchAllowance,
+      childrenAllowance,
+      attendanceAllowance,
+      seniorityAllowance,
+    } = baseSalaryInfo;
+
+    const totalSalaryGross = Math.round(
+      basicSalary +
+        responsibilityAllowance +
+        transportAllowance +
+        phoneAllowance +
+        lunchAllowance +
+        childrenAllowance +
+        attendanceAllowance +
+        seniorityAllowance,
+    );
+
+    const baseSalary = Math.round((totalSalaryGross / 22) * summary.workingDays);
+
+    const employeeInsurance = Math.round(baseSalary * 0.105);
+
+    const taxableIncome = baseSalary - employeeInsurance;
+
+    const personalIncomeTax = calculateTax(taxableIncome);
+
+    const totalSalaryNet = Math.round(taxableIncome - personalIncomeTax);
+
     if (
       existingSalary &&
       (existingSalary.attendanceMonth === null ||
         existingSalary.attendanceYear === null ||
         (existingSalary.attendanceMonth === month && existingSalary.attendanceYear === year))
     ) {
-      const updatedSalary = await Salary.findOneAndUpdate(
+      await Salary.findOneAndUpdate(
         { employeeId },
         {
           attendanceMonth: month,
           attendanceYear: year,
           attendanceSummary: summary,
+          totalSalaryGross,
+          totalSalaryNet,
+          personalIncomeTax,
+          employeeInsurance,
+          effectiveDate: new Date(),
         },
         { new: true },
       );
 
-      if (updatedSalary) {
-        const {
-          basicSalary,
-          responsibilityAllowance,
-          transportAllowance,
-          phoneAllowance,
-          lunchAllowance,
-          childrenAllowance,
-          attendanceAllowance,
-          seniorityAllowance,
-          employeeInsurance,
-        } = updatedSalary;
-
-        const baseSalary = Math.round((basicSalary / 24) * summary.workingDays);
-
-        const totalSalaryGross = Math.round(
-          baseSalary +
-            responsibilityAllowance +
-            transportAllowance +
-            phoneAllowance +
-            lunchAllowance +
-            childrenAllowance +
-            attendanceAllowance +
-            seniorityAllowance,
-        );
-
-        const personalIncomeTax = calculateTax(totalSalaryGross, employeeInsurance);
-
-        const totalSalaryNet = Math.round(totalSalaryGross - personalIncomeTax - employeeInsurance);
-
-        await Salary.findOneAndUpdate(
-          { employeeId },
-          {
-            totalSalaryGross,
-            totalSalaryNet,
-            personalIncomeTax,
-            effectiveDate: new Date(),
-          },
-          { new: true },
-        );
-
-        console.log(`Lương của nhân viên ${employeeId} đã được tính và cập nhật thành công.`);
-      }
+      console.log(`Lương của nhân viên ${employeeId} đã được cập nhật thành công.`);
     } else {
-      const baseSalaryInfo =
-        existingSalary || (await Salary.findOne({ employeeId }, {}, { sort: { effectiveDate: -1 } }));
-
-      if (!baseSalaryInfo) {
-        console.error(`Không tìm thấy thông tin lương cơ bản cho nhân viên ${employeeId}`);
-        return;
-      }
-
-      const {
-        basicSalary,
-        responsibilityAllowance,
-        transportAllowance,
-        phoneAllowance,
-        lunchAllowance,
-        childrenAllowance,
-        attendanceAllowance,
-        seniorityAllowance,
-        employeeInsurance,
-      } = baseSalaryInfo;
-
-      const baseSalary = Math.round((basicSalary / 24) * summary.workingDays);
-
-      const totalSalaryGross = Math.round(
-        baseSalary +
-          responsibilityAllowance +
-          transportAllowance +
-          phoneAllowance +
-          lunchAllowance +
-          childrenAllowance +
-          attendanceAllowance +
-          seniorityAllowance,
-      );
-
-      const personalIncomeTax = calculateTax(totalSalaryGross, employeeInsurance);
-
-      const totalSalaryNet = Math.round(totalSalaryGross - personalIncomeTax - employeeInsurance);
-
       await Salary.create({
         employeeId,
         attendanceMonth: month,

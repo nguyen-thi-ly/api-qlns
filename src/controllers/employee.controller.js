@@ -370,19 +370,20 @@ const updateEmployee = async (req, res) => {
 // @access  Public
 const deleteEmployee = async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id);
+    const { employeeIds } = req.body;
 
-    if (employee) {
-      // Xóa cả bảng lương khi xóa nhân viên
-      await Salary.deleteMany({ employeeId: employee.employeeId });
-      await Attendance.deleteMany({ employeeId: employee.employeeId });
-      await Employee.deleteOne({ employeeId: req.params.id });
-      res.json({ message: "Đã xóa nhân viên" });
-    } else {
-      res.status(404).json({ message: "Không tìm thấy nhân viên" });
+    if (!Array.isArray(employeeIds) || employeeIds.length === 0) {
+      return res.status(400).json({ message: "Danh sách employeeId không hợp lệ" });
     }
+
+    // Xoá dữ liệu liên quan
+    await Salary.deleteMany({ employeeId: { $in: employeeIds } });
+    await Attendance.deleteMany({ employeeId: { $in: employeeIds } });
+    await Employee.deleteMany({ employeeId: { $in: employeeIds } });
+
+    res.json({ message: "Đã xoá các nhân viên thành công" });
   } catch (error) {
-    console.error(`Error: ${error.message}`);
+    console.error(`Lỗi: ${error.message}`);
     res.status(500).json({ message: "Lỗi server" });
   }
 };
