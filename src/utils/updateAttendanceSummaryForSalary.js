@@ -53,26 +53,31 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
       seniorityAllowance,
     } = baseSalaryInfo;
 
-    const totalSalaryGross = Math.round(
-      basicSalary +
-        responsibilityAllowance +
-        transportAllowance +
-        phoneAllowance +
-        lunchAllowance +
-        childrenAllowance +
-        attendanceAllowance +
-        seniorityAllowance,
-    );
+    // Phụ cấp không tính thuế: tổng các phụ cấp không tính thuế
+    const nonTaxableaAllowance =
+      transportAllowance + phoneAllowance + lunchAllowance + childrenAllowance + seniorityAllowance;
 
-    const baseSalary = Math.round((totalSalaryGross / 22) * summary.workingDays);
+    // Phụ cấp tính thuế: phụ cấp chuyên cần + phuhc cấp trách nhiệm
+    const taxableAllowance = responsibilityAllowance + attendanceAllowance;
 
-    const employeeInsurance = Math.round(baseSalary * 0.105);
+    // Tổng lương thực tế: (lương cơ bản + phụ cấp tính thuế) / 22 * số ngày công
+    // const grossActualWage = Math.round((basicSalary + taxableAllowance) / 22) * summary.workingDays));
+    const grossActualWage = Math.round(((basicSalary + taxableAllowance) / 22) * summary.workingDays);
 
-    const taxableIncome = baseSalary - employeeInsurance;
+    // Bảo hiểm nhân viên: (lương cơ bản + phụ cấp tính thuế) * 10.5%
+    const employeeInsurance = (basicSalary + taxableAllowance) * 0.105;
 
+    // Tổng thu nhập chịu thuế: Lương cơ bản + phụ cấp tính thuế
+    const totalTaxableIncome = basicSalary + taxableAllowance;
+
+    // Tổng thu nhập chịu thuế thực tế: Tổng lương thực tế - Bảo hiểm nhân viên
+    const taxableIncome = totalTaxableIncome - employeeInsurance;
+
+    // Tính thuế thu nhập cá nhân
     const personalIncomeTax = calculateTax(taxableIncome);
 
-    const totalSalaryNet = Math.round(taxableIncome - personalIncomeTax);
+    // Lương thực nhận:
+    const totalSalaryNet = totalTaxableIncome - employeeInsurance - personalIncomeTax + nonTaxableaAllowance;
 
     if (
       existingSalary &&
@@ -86,7 +91,7 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
           attendanceMonth: month,
           attendanceYear: year,
           attendanceSummary: summary,
-          totalSalaryGross,
+          totalSalaryGross: grossActualWage,
           totalSalaryNet,
           personalIncomeTax,
           employeeInsurance,
@@ -111,7 +116,7 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
         attendanceAllowance,
         seniorityAllowance,
         employeeInsurance,
-        totalSalaryGross,
+        totalSalaryGross: grossActualWage,
         totalSalaryNet,
         personalIncomeTax,
         effectiveDate: new Date(),

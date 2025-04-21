@@ -100,7 +100,7 @@ const importAttendance = async (req, res) => {
       }
 
       const totalDays = attendanceData.length;
-      const workingDays = fullDays + halfDays;
+      const workingDays = fullDays + halfDays * 0.5;
 
       // Tạo summary
       const summary = {
