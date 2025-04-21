@@ -59,6 +59,10 @@ const salarySchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    overTimePay: {
+      type: Number,
+      default: 0,
+    },
     attendanceMonth: {
       type: Number,
       default: null,

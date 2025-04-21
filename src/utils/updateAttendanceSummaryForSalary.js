@@ -53,22 +53,28 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
       seniorityAllowance,
     } = baseSalaryInfo;
 
-    // Phụ cấp không tính thuế: tổng các phụ cấp không tính thuế
+    // Phụ cấp không tính thuế: tổng các phụ cấp không tính thuế: phụ cấp đi lại + phụ cấp điện thoại + phụ cấp ăn trưa + phụ cấp con nhỏ + phụ cấp thâm niên
     const nonTaxableaAllowance =
       transportAllowance + phoneAllowance + lunchAllowance + childrenAllowance + seniorityAllowance;
 
     // Phụ cấp tính thuế: phụ cấp chuyên cần + phuhc cấp trách nhiệm
     const taxableAllowance = responsibilityAllowance + attendanceAllowance;
 
+    // Tiền tăng ca: Số giờ tăng ca * (Lương giờ * hệ số tăng ca)
+    // Lương 1 giờ
+    const hourlyWage = basicSalary / (22 * 8);
+
+    // Tổng tiền tăng ca: Số giờ tăng ca * (Lương giờ * hệ số tăng ca)
+    const totalOT = summary.otHours * (hourlyWage * 1.5);
+
     // Tổng lương thực tế: (lương cơ bản + phụ cấp tính thuế) / 22 * số ngày công
-    // const grossActualWage = Math.round((basicSalary + taxableAllowance) / 22) * summary.workingDays));
     const grossActualWage = Math.round(((basicSalary + taxableAllowance) / 22) * summary.workingDays);
 
     // Bảo hiểm nhân viên: (lương cơ bản + phụ cấp tính thuế) * 10.5%
     const employeeInsurance = (basicSalary + taxableAllowance) * 0.105;
 
     // Tổng thu nhập chịu thuế: Lương cơ bản + phụ cấp tính thuế
-    const totalTaxableIncome = basicSalary + taxableAllowance;
+    const totalTaxableIncome = basicSalary + totalOT + taxableAllowance;
 
     // Tổng thu nhập chịu thuế thực tế: Tổng lương thực tế - Bảo hiểm nhân viên
     const taxableIncome = totalTaxableIncome - employeeInsurance;
@@ -95,6 +101,7 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
           totalSalaryNet,
           personalIncomeTax,
           employeeInsurance,
+          overTimePay: totalOT,
           effectiveDate: new Date(),
         },
         { new: true },
@@ -117,6 +124,7 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
         seniorityAllowance,
         employeeInsurance,
         totalSalaryGross: grossActualWage,
+        overTimePay: totalOT,
         totalSalaryNet,
         personalIncomeTax,
         effectiveDate: new Date(),

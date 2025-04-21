@@ -31,6 +31,7 @@ const importAttendance = async (req, res) => {
 
       const employeeId = row[0];
       const fullName = row[1];
+      const otHours = row[row.length - 1] || 0;
 
       // Kiểm tra nhân viên tồn tại
       const employee = await Employee.findOne({ employeeId });
@@ -109,6 +110,7 @@ const importAttendance = async (req, res) => {
         halfDays,
         offDays,
         workingDays,
+        otHours: parseFloat(otHours),
       };
 
       // Lưu vào database
