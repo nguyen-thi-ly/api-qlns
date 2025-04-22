@@ -65,10 +65,10 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
     const hourlyWage = basicSalary / (22 * 8);
 
     // Tổng tiền tăng ca: Số giờ tăng ca * (Lương giờ * hệ số tăng ca)
-    const totalOT = summary.otHours * (hourlyWage * 1.5);
+    const totalOT = Math.round(summary.otHours * (hourlyWage * 1.5));
 
     // Tổng lương thực tế: (lương cơ bản + phụ cấp tính thuế) / 22 * số ngày công
-    const grossActualWage = Math.round(((basicSalary + taxableAllowance) / 22) * summary.workingDays);
+    const grossActualWage = Math.round(((basicSalary + taxableAllowance) / summary.totalDays) * summary.workingDays);
 
     // Bảo hiểm nhân viên: (lương cơ bản + phụ cấp tính thuế) * 10.5%
     const employeeInsurance = (basicSalary + taxableAllowance) * 0.105;

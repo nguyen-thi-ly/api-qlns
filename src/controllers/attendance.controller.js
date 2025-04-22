@@ -100,7 +100,8 @@ const importAttendance = async (req, res) => {
         });
       }
 
-      const totalDays = attendanceData.length;
+      const totalDays = attendanceData.filter((day) => day.dayOfWeek !== "T7" && day.dayOfWeek !== "CN").length;
+
       const workingDays = fullDays + halfDays * 0.5;
 
       // Tạo summary
@@ -203,23 +204,22 @@ const getAttendance = async (req, res) => {
 
       const summary = attendance.attendanceData.reduce(
         (acc, day) => {
-          // Chỉ tính các ngày làm việc trong tuần (không phải T7 và CN)
           const isWeekend = day.dayOfWeek === "T7" || day.dayOfWeek === "CN";
 
-          acc.totalDays++;
+          // Chỉ tính ngày làm việc (không phải T7, CN)
+          if (!isWeekend) {
+            acc.totalDays++;
 
-          if (day.value === 1) {
-            acc.fullDays++;
-          } else if (day.value === 0.5) {
-            acc.halfDays++;
-          } else {
-            // Chỉ tính ngày nghỉ nếu không phải cuối tuần
-            if (!isWeekend) {
+            if (day.value === 1) {
+              acc.fullDays++;
+            } else if (day.value === 0.5) {
+              acc.halfDays++;
+            } else {
               acc.offDays++;
             }
-          }
 
-          acc.workingDays += day.value;
+            acc.workingDays += day.value;
+          }
           return acc;
         },
         { totalDays: 0, fullDays: 0, halfDays: 0, offDays: 0, workingDays: 0 },
@@ -283,23 +283,22 @@ const getAllAttendance = async (req, res) => {
 
       const summary = attendance.attendanceData.reduce(
         (acc, day) => {
-          // Chỉ tính các ngày làm việc trong tuần (không phải T7 và CN)
           const isWeekend = day.dayOfWeek === "T7" || day.dayOfWeek === "CN";
 
-          acc.totalDays++;
+          // Chỉ tính ngày làm việc (không phải T7, CN)
+          if (!isWeekend) {
+            acc.totalDays++;
 
-          if (day.value === 1) {
-            acc.fullDays++;
-          } else if (day.value === 0.5) {
-            acc.halfDays++;
-          } else {
-            // Chỉ tính ngày nghỉ nếu không phải cuối tuần
-            if (!isWeekend) {
+            if (day.value === 1) {
+              acc.fullDays++;
+            } else if (day.value === 0.5) {
+              acc.halfDays++;
+            } else {
               acc.offDays++;
             }
-          }
 
-          acc.workingDays += day.value;
+            acc.workingDays += day.value;
+          }
           return acc;
         },
         { totalDays: 0, fullDays: 0, halfDays: 0, offDays: 0, workingDays: 0 },
