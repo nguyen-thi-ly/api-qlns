@@ -18,6 +18,8 @@ const importAttendance = async (req, res) => {
     const worksheet = workbook.Sheets[sheetName];
     const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
 
+    await Attendance.deleteMany({ month, year });
+
     // Lấy các dòng tiêu đề
     const dates = jsonData[1].slice(2); // Dòng ngày (bỏ qua 2 cột đầu)
     const dayOfWeeks = jsonData[2].slice(2); // Dòng thứ
@@ -102,7 +104,7 @@ const importAttendance = async (req, res) => {
 
       const totalDays = attendanceData.filter((day) => day.dayOfWeek !== "T7" && day.dayOfWeek !== "CN").length;
 
-      const workingDays = fullDays + halfDays * 0.5;
+      const workingDays = fullDays + halfDays * 0.5 - offDays;
 
       // Tạo summary
       const summary = {
@@ -202,29 +204,6 @@ const getAttendance = async (req, res) => {
     const result = attendances.map((attendance) => {
       const emp = employeeMap[attendance.employeeId] || {};
 
-      const summary = attendance.attendanceData.reduce(
-        (acc, day) => {
-          const isWeekend = day.dayOfWeek === "T7" || day.dayOfWeek === "CN";
-
-          // Chỉ tính ngày làm việc (không phải T7, CN)
-          if (!isWeekend) {
-            acc.totalDays++;
-
-            if (day.value === 1) {
-              acc.fullDays++;
-            } else if (day.value === 0.5) {
-              acc.halfDays++;
-            } else {
-              acc.offDays++;
-            }
-
-            acc.workingDays += day.value;
-          }
-          return acc;
-        },
-        { totalDays: 0, fullDays: 0, halfDays: 0, offDays: 0, workingDays: 0 },
-      );
-
       return {
         employee: {
           employeeId: emp.employeeId,
@@ -234,7 +213,7 @@ const getAttendance = async (req, res) => {
         },
         month: attendance.month,
         year: attendance.year,
-        summary,
+        summary: attendance.summary,
         attendanceData: attendance.attendanceData.map((day) => ({
           date: day.date,
           dayOfWeek: day.dayOfWeek,
@@ -281,29 +260,6 @@ const getAllAttendance = async (req, res) => {
     const result = attendances.map((attendance) => {
       const emp = employeeMap[attendance.employeeId] || {};
 
-      const summary = attendance.attendanceData.reduce(
-        (acc, day) => {
-          const isWeekend = day.dayOfWeek === "T7" || day.dayOfWeek === "CN";
-
-          // Chỉ tính ngày làm việc (không phải T7, CN)
-          if (!isWeekend) {
-            acc.totalDays++;
-
-            if (day.value === 1) {
-              acc.fullDays++;
-            } else if (day.value === 0.5) {
-              acc.halfDays++;
-            } else {
-              acc.offDays++;
-            }
-
-            acc.workingDays += day.value;
-          }
-          return acc;
-        },
-        { totalDays: 0, fullDays: 0, halfDays: 0, offDays: 0, workingDays: 0 },
-      );
-
       return {
         employee: {
           employeeId: emp.employeeId,
@@ -313,7 +269,7 @@ const getAllAttendance = async (req, res) => {
         },
         month: attendance.month,
         year: attendance.year,
-        summary,
+        summary: attendance.summary,
         attendanceData: attendance.attendanceData.map((day) => ({
           date: day.date,
           dayOfWeek: day.dayOfWeek,

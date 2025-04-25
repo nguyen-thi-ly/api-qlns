@@ -17,6 +17,10 @@ const attendanceSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    summary: {
+      type: Object,
+      required: false,
+    },
     attendanceData: [
       {
         date: {

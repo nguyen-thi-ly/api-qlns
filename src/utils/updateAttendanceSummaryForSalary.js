@@ -87,9 +87,8 @@ const updateAttendanceSummaryForSalary = async (employeeId, month, year, summary
 
     if (
       existingSalary &&
-      (existingSalary.attendanceMonth === null ||
-        existingSalary.attendanceYear === null ||
-        (existingSalary.attendanceMonth === month && existingSalary.attendanceYear === year))
+      (existingSalary.attendanceMonth == month || existingSalary.attendanceMonth == null) &&
+      (existingSalary.attendanceYear == year || existingSalary.attendanceYear == null)
     ) {
       await Salary.findOneAndUpdate(
         { employeeId },

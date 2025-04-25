@@ -6,7 +6,7 @@ import {
   updateEmployee,
   deleteEmployee,
 } from "../controllers/employee.controller.js";
-import authorize from "../middlewares/authorize.middleware.js";
+// import authorize from "../middlewares/authorize.middleware.js";
 const router = express.Router();
 
 router.route("/").get(getEmployees).post(createEmployee);
