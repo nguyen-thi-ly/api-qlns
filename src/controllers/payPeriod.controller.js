@@ -6,7 +6,7 @@ export const createPayPeriod = async (req, res) => {
   const { month, year, employeeIds } = req.body;
 
   try {
-    const namePayPeriod = `Kỳ trả lương ${month}/${year}-TSC-HO`;
+    const namePayPeriod = `Kỳ trả lương ${month}/${year}`;
 
     // Tìm kỳ lương đã tồn tại
     const existingPayPeriod = await payPeriodModel.findOne({ namePayPeriod });
@@ -120,6 +120,34 @@ export const getPayPeriodById = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Lấy thông tin kỳ lương thất bại",
+      error: error.message,
+    });
+  }
+};
+
+export const deletePayPeriods = async (req, res) => {
+  const { ids } = req.body;
+
+  try {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Danh sách ID cần xoá không hợp lệ",
+      });
+    }
+
+    const result = await payPeriodModel.deleteMany({
+      _id: { $in: ids },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Đã xoá thành công ${result.deletedCount} kỳ lương`,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Xoá kỳ lương thất bại",
       error: error.message,
     });
   }
