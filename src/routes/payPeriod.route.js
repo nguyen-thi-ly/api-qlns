@@ -10,6 +10,6 @@ const router = express.Router();
 
 router.route("/").get(getPayPeriod).post(createPayPeriod);
 router.route("/:id").get(getPayPeriodById);
-router.route("/:id").post(deletePayPeriods);
+router.route("/delete").post(deletePayPeriods);
 
 export default router;
